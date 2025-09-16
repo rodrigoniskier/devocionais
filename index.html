@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devocionais Diárias de Gênesis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        #search-input::placeholder {
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-3xl mx-auto bg-white rounded-xl card-shadow overflow-hidden">
+        <header class="bg-gray-800 text-white p-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold">Devocional Diário</h1>
+            <p class="text-gray-300 mt-1">Reflexões Neocalvinistas em Gênesis</p>
+            <div class="mt-4">
+                <input type="text" id="search-input" placeholder="Buscar por versículo ou palavra-chave..." class="w-full max-w-md mx-auto p-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400" disabled>
+            </div>
+        </header>
+
+        <main id="devotional-content" class="p-6 md:p-8 space-y-6">
+            <p class="text-center text-gray-600">Carregando devocionais...</p>
+        </main>
+
+        <footer class="p-6 bg-gray-50 border-t border-gray-200 flex justify-center">
+            <button id="today-devotional-btn" class="bg-gray-700 hover:bg-gray-900 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
+                Devocional de Hoje
+            </button>
+        </footer>
+    </div>
+    
+    <div class="text-center mt-4 text-gray-500 text-sm">
+        <p>&copy; 2024 - Criado para reflexão e estudo.</p>
+    </div>
+
+<script>
+    const devotionalContentEl = document.getElementById('devotional-content');
+    const todayDevotionalBtn = document.getElementById('today-devotional-btn');
+    const searchInput = document.getElementById('search-input');
+
+    let devotionals = []; // O array agora será preenchido a partir dos arquivos JSON
+
+    async function loadDevotionals() {
+        try {
+            // CORREÇÃO: Adicionado './' para indicar que o caminho do arquivo é relativo ao arquivo HTML.
+            const files = ['./devocionais-semestre1.json', './devocionais-semestre2.json'];
+            const promises = files.map(file => fetch(file).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Não foi possível carregar o arquivo: ${file}`);
+                }
+                return response.json();
+            }));
+            
+            const [sem1, sem2] = await Promise.all(promises);
+            devotionals = [...sem1, ...sem2];
+            
+            // Após carregar os dados, habilita a busca e exibe o devocional do dia
+            searchInput.disabled = false;
+            searchInput.placeholder = "Buscar por versículo ou palavra-chave...";
+            initialize();
+
+        } catch (error) {
+            console.error("Erro ao carregar devocionais:", error);
+            devotionalContentEl.innerHTML = `<p class="text-center text-red-600">Ocorreu um erro ao carregar o conteúdo. Verifique se os arquivos JSON estão disponíveis e tente novamente.</p>`;
+            searchInput.placeholder = "Busca indisponível";
+        }
+    }
+
+    function getDayOfYear() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        const diff = now - start;
+        const oneDay = 1000 * 60 * 60 * 24;
+        return Math.floor(diff / oneDay);
+    }
+    
+    function displayDevotional(devotional) {
+        if (!devotional) {
+            devotionalContentEl.innerHTML = `<p class="text-center text-gray-600">Não há devocional disponível para o dia de hoje. Por favor, verifique os arquivos JSON.</p>`;
+            return;
+        }
+        devotionalContentEl.innerHTML = `
+            <div class="text-center">
+                <blockquote class="text-lg md:text-xl italic text-gray-700">
+                    “${devotional.verse}”
+                </blockquote>
+                <p class="mt-2 font-semibold text-gray-900">${devotional.reference} (ARA)</p>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-3">Ideia Central do Texto</h2>
+                <p class="text-gray-600 leading-relaxed">${devotional.centralIdea}</p>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Aplicações Práticas</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-semibold text-gray-700">Família:</h3>
+                        <p class="text-gray-600">${devotional.applications.familia}</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700">Trabalho:</h3>
+                        <p class="text-gray-600">${devotional.applications.trabalho}</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700">Estudos:</h3>
+                        <p class="text-gray-600">${devotional.applications.estudos}</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700">Missão Evangelística:</h3>
+                        <p class="text-gray-600">${devotional.applications.missao}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function showDevotionalOfDay() {
+        const dayNumber = getDayOfYear();
+        const devotional = devotionals.find(d => d.day === dayNumber);
+        displayDevotional(devotional);
+    }
+
+    function displaySearchResults(results) {
+        if (results.length === 0) {
+            devotionalContentEl.innerHTML = `<p class="text-center text-gray-600">Nenhum resultado encontrado.</p>`;
+            return;
+        }
+
+        const resultsHtml = results.map(d => `
+            <div class="border-b border-gray-200 pb-3 mb-3 cursor-pointer hover:bg-gray-50 p-2 rounded-md search-result" data-day="${d.day}">
+                <p class="font-bold text-gray-800">${d.reference}</p>
+                <p class="text-gray-600 italic">“${d.verse.substring(0, 100)}...”</p>
+            </div>
+        `).join('');
+        devotionalContentEl.innerHTML = resultsHtml;
+    }
+
+    function handleSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+
+        if (searchTerm === '') {
+            showDevotionalOfDay();
+            return;
+        }
+
+        const results = devotionals.filter(d => 
+            d.reference.toLowerCase().includes(searchTerm) ||
+            d.verse.toLowerCase().includes(searchTerm) ||
+            d.centralIdea.toLowerCase().includes(searchTerm)
+        );
+        displaySearchResults(results);
+    }
+    
+    function initialize() {
+        showDevotionalOfDay();
+
+        todayDevotionalBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            showDevotionalOfDay();
+        });
+
+        searchInput.addEventListener('input', handleSearch);
+        
+        devotionalContentEl.addEventListener('click', function(e) {
+            const resultEl = e.target.closest('.search-result');
+            if (resultEl) {
+                const day = parseInt(resultEl.dataset.day, 10);
+                const devotional = devotionals.find(d => d.day === day);
+                displayDevotional(devotional);
+            }
+        });
+    }
+
+    // --- INICIA A APLICAÇÃO ---
+    document.addEventListener('DOMContentLoaded', loadDevotionals);
+
+</script>
+
+</body>
+</html>
+
